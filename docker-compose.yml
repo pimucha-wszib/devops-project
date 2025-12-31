@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:18
+    container_name: postgres_db
+    restart: always
+    networks:
+      - back_net
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app_db
+    volumes:
+      - db_data:/var/lib/postgresql
+
+  app:
+    build:
+      context: .
+      target: final
+    container_name: flask_app
+    depends_on:
+      - db
+      - seed_runner
+    networks:
+      - back_net
+    environment:
+      DATABASE_URL: "postgresql://user:password@db:5432/app_db"
+    ports:
+      - "5000:5000"
+
+  seed_runner:
+    build:
+      context: .
+      target: final
+    container_name: seed_runner
+    command: ["python", "-m", "seed.run_seed"]
+    environment:
+      DATABASE_URL: "postgresql://user:password@db:5432/app_db"
+      OUTPUT_DIR: "/seed_output"
+    depends_on:
+      - db
+    networks:
+      - back_net
+    volumes:
+      - seed_output:/seed_output
+    restart: "no"
+
+networks:
+  back_net:
+
+volumes:
+  db_data:
+  seed_output:
