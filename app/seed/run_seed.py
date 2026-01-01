@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from src.models import User, Task
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/postgres")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/app_db")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", "/seed_output")
 
 # Create engine and session with no flask context
