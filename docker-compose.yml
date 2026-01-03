@@ -14,6 +14,12 @@ services:
       POSTGRES_DB: app_db
     volumes:
       - db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d app_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   app:
     build:
@@ -21,8 +27,10 @@ services:
       target: final
     container_name: flask_app
     depends_on:
-      - db
-      - seed_runner
+      db:
+        condition: service_healthy
+      seed_runner:
+        condition: service_completed_successfully
     networks:
       - back_net
       - front_net
@@ -41,7 +49,8 @@ services:
       DATABASE_URL: "postgresql://user:password@db:5432/app_db"
       OUTPUT_DIR: "/seed_output"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - back_net
     volumes:

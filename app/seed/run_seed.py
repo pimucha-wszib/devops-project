@@ -20,33 +20,37 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 User.metadata.create_all(engine)
 Task.metadata.create_all(engine)
 
-# Check if any user data exists
-if session.query(User).count() > 0:
-    print("Seed skipped: data already exists in the database.")
+names = ["Alicja", "Bogdan", "Cecylia", "Damian", "Edyta", "Filip", "Grażyna", "Hubert"]
+
+# Find which names already exist in the database
+existing = {u.name for u in session.query(User).filter(User.name.in_(names)).all()}
+to_create = [n for n in names if n not in existing]
+
+if not to_create:
+    print("No new users to create. Seed skipped.")
     with open(f"{OUTPUT_DIR}/seed.log", "a") as f:
         f.write("---------------------------------\n")
-        f.write(f"No actions were processed at {datetime.now()}. Database already populated.\n")
+        f.write(f"No new users were created at {datetime.now()}.\n")
         f.write("---------------------------------\n")
     session.close()
     exit(0)
 
-print("No data found, proceeding with seeding...")
+print(f"Creating {len(to_create)} new users: {to_create}")
 
-names = ["Alicja", "Bogdan", "Cecylia", "Damian", "Edyta", "Filip", "Grażyna", "Hubert"]
-users = [User(name=n) for n in names]
-session.add_all(users)
+new_users = [User(name=n) for n in to_create]
+session.add_all(new_users)
 session.commit()
 
+created = session.query(User).filter(User.name.in_(to_create)).all()
 
-for u in users:
+for u in created:
     session.add(Task(title=f"Task 1 for {u.name}", user_id=u.id))
     session.add(Task(title=f"Task 2 for {u.name}", user_id=u.id))
 session.commit()
 
-
 with open(f"{OUTPUT_DIR}/seed.log", "a") as f:
     f.write("---------------------------------\n")
-    f.write(f"Database populated at {datetime.now()} with {len(users)} new users\n")
+    f.write(f"Database updated at {datetime.now()} with {len(created)} new users\n")
     f.write(f"More details added in file data.json\n")
     f.write("---------------------------------\n")
 
@@ -55,7 +59,7 @@ with open(f"{OUTPUT_DIR}/data.json", "w") as f:
                 "id": u.id,
                 "name": u.name,
                 "tasks": [t.title for t in u.tasks]}
-            for u in session.query(User).all()],
+            for u in session.query(User).filter(User.name.in_(to_create)).all()],
         f,
         indent=2
     )
