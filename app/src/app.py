@@ -1,10 +1,12 @@
 from flask import Flask, jsonify, request
+from flask_migrate import Migrate
 from src.db import db
 from src.models import User, Task
 import os
 
 def create_app(test_config=None):
     app = Flask(__name__)
+    migrate = Migrate()
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -13,6 +15,7 @@ def create_app(test_config=None):
         app.config.update(test_config)
 
     db.init_app(app)
+    migrate.init_app(app, db)
 
     with app.app_context():
         db.create_all()

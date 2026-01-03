@@ -16,10 +16,10 @@ services:
       - db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d app_db"]
-      interval: 10s
+      interval: 3s
       timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 3s
 
   app:
     build:
@@ -27,10 +27,8 @@ services:
       target: final
     container_name: flask_app
     depends_on:
-      db:
-        condition: service_healthy
-      seed_runner:
-        condition: service_completed_successfully
+      - db
+      - seed_runner
     networks:
       - back_net
       - front_net
@@ -49,8 +47,7 @@ services:
       DATABASE_URL: "postgresql://user:password@db:5432/app_db"
       OUTPUT_DIR: "/seed_output"
     depends_on:
-      db:
-        condition: service_healthy
+      - migration_runner
     networks:
       - back_net
     volumes:
@@ -69,6 +66,21 @@ services:
       - nginx_logs:/var/log/nginx
     networks:
       - front_net
+
+  migration_runner:
+    build:
+      context: .
+      target: final
+    container_name: migration_runner
+    command: ["python", "-m", "migrations.migrate"]
+    environment:
+      DATABASE_URL: "postgresql://user:password@db:5432/app_db"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - back_net
+    restart: "no"
 
 networks:
   back_net:
