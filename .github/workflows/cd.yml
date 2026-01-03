@@ -1,0 +1,35 @@
+name: CD
+
+on:
+    workflow_dispatch:
+    push:
+        tags:
+            - 'v*.*.*'
+
+env:
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+              # In theory log in to production server via ssh and deploy new version
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@v0.1.7
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.USERNAME }}
+                password: ${{ secrets.PASSWORD }}
+                port: ${{ secrets.PORT}}
+                script: |
+                    IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest"
+
+                    docker pull "$IMAGE"
+                    docker compose pull
+                    docker compose up -d
+                    docker compose restart
+
